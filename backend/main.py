@@ -1,4 +1,3 @@
-# main.pyのイメージ (参考)
 from fastapi import FastAPI
 from pydantic import BaseModel
 from services import analyze_jd_and_generate_kpi
