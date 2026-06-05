@@ -1,4 +1,4 @@
-# PRD: JD to KPI Converter
+# PRD: To KPI Converter
 
 ## 1. プロダクトビジョン
 
