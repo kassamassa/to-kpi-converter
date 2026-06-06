@@ -1,25 +1,39 @@
 from openai import OpenAI
 from models import JDAnalysisResult  # models.pyで作ったPydanticモデル
+import google.generativeai as genai
 from prompts import SYSTEM_PROMPT    # prompts.pyで作ったプロンプト
+from dotenv import load_dotenv  
+import os
 
+load_dotenv()
 # OpenAIクライアントの初期化（環境変数にOPENAI_API_KEYが設定されている前提）
-client = OpenAI()
+genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+model = genai.GenerativeModel(
+    model_name="gemini-2.5-flash",
+    generation_config={"response_mime_type": "application/json"} # JSON出力を強制
+)
+
+print("=== あなたのキーで使えるモデル一覧 ===")
+for m in genai.list_models():
+    if 'generateContent' in m.supported_generation_methods:
+        print(m.name)
+print("======================================")
+
 
 def analyze_jd_and_generate_kpi(jd_text: str) -> JDAnalysisResult:
-    """
-    募集要項(JD)のテキストを受け取り、OpenAI APIを使ってKPIに変換する関数
+    # プロンプトを構築
+    prompt = f"""
+    あなたはプロの採用コンサルタントです。以下の募集要項(JD)を分析し、KPIを抽出してください。
+    必ず、以下のJSONスキーマに従って出力してください。
+    
+    {JDAnalysisResult.model_json_schema()}
+    
+    対象JD: 
+    {jd_text}
     """
     
-    # OpenAI APIを呼び出し、Pydanticモデルの形式でパースして受け取る
-    response = client.beta.chat.completions.parse(
-        model="gpt-4o-2024-08-06", # Structured Outputs対応モデル推奨
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"以下の募集要項を分析し、具体的なKPIを生成してください。\n\n{jd_text}"}
-        ],
-        response_format=JDAnalysisResult, # ここでmodels.pyの型を指定！
-        temperature=0.2 # 感情的バイアスを排除し、ロジカルな分析をさせるため低めに設定
-    )
-
-    # パースされた結果（JDAnalysisResultオブジェクト）を返す
-    return response.choices[0].message.parsed
+    # AIの呼び出し
+    response = model.generate_content(prompt)
+    
+    # JSON文字列をPythonのモデルに変換して返す
+    return JDAnalysisResult.model_validate_json(response.text)
