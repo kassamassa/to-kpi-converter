@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import List
 
-class KPI:
+class KPI(BaseModel):
   metric_name: str = Field(description="評価される指標名（例：APIレスポンスタイム）")
   target_value: str = Field(description="具体的な目標数値（例：200ms以内）")
   verification_method: str = Field(description="GitHub等での証明方法（例：該当PRのリンク）")
